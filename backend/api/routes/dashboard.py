@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from typing import Dict, Any, List
 from datetime import datetime
+from collections import defaultdict
 
 # Import Services
 from backend.config.settings import get_settings
@@ -139,13 +140,73 @@ async def get_dashboard_summary(background_tasks: BackgroundTasks):
 async def get_top_issues():
     if not DATA_CACHE["last_updated"]:
         await refresh_pipeline()
-    return DATA_CACHE["issues"]
+    
+    # Transform backend format to frontend format
+    # Backend: {cluster_id, top_keywords, size, label}
+    # Frontend: {label, top_keywords, post_count, avg_sentiment, trend}
+    raw_issues = DATA_CACHE.get("issues") or []
+    
+    transformed = []
+    for issue in raw_issues:
+        transformed.append({
+            "label": issue.get("label", "Unknown Issue"),
+            "top_keywords": issue.get("top_keywords", []),
+            "post_count": issue.get("size", issue.get("post_count", 0)),
+            "avg_sentiment": issue.get("avg_sentiment", 0.0),  # Default to neutral
+            "trend": issue.get("trend", "stable")  # Default to stable
+        })
+    
+    return transformed
 
 @router.get("/trends")
 async def get_trends():
     if not DATA_CACHE["last_updated"]:
         await refresh_pipeline()
-    return DATA_CACHE["trends"]
+    
+    # Transform backend format to frontend format
+    # Backend: List[TrendData] where each has (keyword, timestamp, interest_value, region)
+    # Frontend: List[{keyword: str, data: List[{date: str, value: number}]}]
+    raw_trends = DATA_CACHE.get("trends") or []
+    
+    if not raw_trends:
+        return []
+    
+    # Group by keyword
+    grouped = defaultdict(list)
+    for trend in raw_trends:
+        try:
+            # TrendData is a Pydantic model, access attributes directly
+            keyword = trend.keyword
+            timestamp = trend.timestamp
+            value = trend.interest_value
+            
+            # Convert timestamp to ISO format string
+            if hasattr(timestamp, 'isoformat'):
+                date_str = timestamp.isoformat()
+            elif isinstance(timestamp, str):
+                date_str = timestamp
+            else:
+                date_str = str(timestamp)
+            
+            grouped[keyword].append({
+                "date": date_str,
+                "value": float(value)
+            })
+        except Exception as e:
+            # Skip malformed entries
+            print(f"Error processing trend entry: {e}")
+            continue
+    
+    # Transform to frontend format
+    transformed = [
+        {
+            "keyword": keyword,
+            "data": sorted(points, key=lambda p: p["date"])  # Sort by date
+        }
+        for keyword, points in grouped.items()
+    ]
+    
+    return transformed
 
 @router.get("/brief")
 async def get_policy_brief():

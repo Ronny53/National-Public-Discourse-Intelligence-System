@@ -54,10 +54,27 @@ function CustomTooltip({ active, payload, label }: TooltipProps) {
 }
 
 export default function TrendChart({ data }: TrendChartProps) {
-  if (!data.length) return null
+  if (!data || !data.length) {
+    return (
+      <div className="h-[300px] flex items-center justify-center text-text-muted">
+        No trend data available
+      </div>
+    )
+  }
+
+  // Validate data structure
+  const validData = data.filter(trend => trend && trend.keyword && trend.data && Array.isArray(trend.data) && trend.data.length > 0)
+  
+  if (validData.length === 0) {
+    return (
+      <div className="h-[300px] flex items-center justify-center text-text-muted">
+        No valid trend data available
+      </div>
+    )
+  }
 
   // Transform data for chart: merge all trend lines into single array
-  const mergedData = data[0].data.map((point, idx) => {
+  const mergedData = validData[0].data.map((point, idx) => {
     const merged: Record<string, string | number> = {
       date: point.date,
       displayDate: new Date(point.date).toLocaleDateString('en-US', { 
@@ -65,7 +82,7 @@ export default function TrendChart({ data }: TrendChartProps) {
         day: 'numeric' 
       })
     }
-    data.forEach(trend => {
+    validData.forEach(trend => {
       merged[trend.keyword] = trend.data[idx]?.value ?? 0
     })
     return merged
@@ -101,7 +118,7 @@ export default function TrendChart({ data }: TrendChartProps) {
           iconType="circle"
           iconSize={8}
         />
-        {data.map((trend, idx) => (
+        {validData.map((trend, idx) => (
           <Line 
             key={trend.keyword}
             type="monotone" 

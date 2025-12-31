@@ -19,13 +19,21 @@ export default function Trends() {
   useEffect(() => {
     async function fetchData() {
       setLoading(true)
-      const [issuesRes, trendsRes] = await Promise.all([
-        api.getIssues(),
-        api.getTrends()
-      ])
-      setIssues(issuesRes)
-      setTrends(trendsRes)
-      setLoading(false)
+      try {
+        const [issuesRes, trendsRes] = await Promise.all([
+          api.getIssues(),
+          api.getTrends()
+        ])
+        setIssues(issuesRes || mockIssues)
+        setTrends(trendsRes || mockTrends)
+      } catch (error) {
+        console.error('Error fetching trends data:', error)
+        // Use mock data as fallback
+        setIssues(mockIssues)
+        setTrends(mockTrends)
+      } finally {
+        setLoading(false)
+      }
     }
     fetchData()
   }, [])
@@ -51,13 +59,13 @@ export default function Trends() {
         </div>
       )
     },
-    {
-      key: 'post_count',
-      label: 'Volume',
-      render: (row: IssueCluster) => (
-        <span className="font-mono text-text-secondary">{row.post_count}</span>
-      )
-    },
+      {
+        key: 'post_count',
+        label: 'Volume',
+        render: (row: IssueCluster) => (
+          <span className="font-mono text-text-secondary">{row.post_count || row.size || 0}</span>
+        )
+      },
     {
       key: 'avg_sentiment',
       label: 'Sentiment',
@@ -75,7 +83,8 @@ export default function Trends() {
       key: 'trend',
       label: 'Trend',
       render: (row: IssueCluster) => {
-        const badge = trendBadge[row.trend]
+        const trend = row.trend || 'stable'
+        const badge = trendBadge[trend] || trendBadge.stable
         return (
           <span className={`text-xs px-2 py-0.5 rounded ${badge.color}`}>
             {badge.label}

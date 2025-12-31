@@ -1,4 +1,5 @@
 from typing import Dict, Any, List
+from datetime import datetime
 
 class PolicyBriefGenerator:
     def __init__(self):
@@ -18,7 +19,7 @@ class PolicyBriefGenerator:
         Generates a policy brief based on current dashboard state.
         """
         # 1. Executive Summary
-        risk =Summary(summary)
+        risk = Summary(summary)
         
         # 2. Key Actions
         actions = []
@@ -47,6 +48,5 @@ class PolicyBriefGenerator:
             "generated_at": str(datetime.now())
         }
 
-from datetime import datetime
 def Summary(summary):
-   return summary['escalation_risk']
+    return summary['escalation_risk']
