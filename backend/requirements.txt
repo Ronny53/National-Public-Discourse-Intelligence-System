@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+praw
+pytrends
+vaderSentiment
+textblob
+pandas
+numpy
+scikit-learn
+duckdb
+python-dotenv
+requests
