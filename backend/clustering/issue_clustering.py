@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import List, Dict
 from backend.api.schemas.social_data import SocialPost
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans

@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     # Analysis Config
     ENABLE_SYNTHETIC_DATA_FALLBACK: bool = True
     
+    # Database Configuration
+    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/nis_db"
+    DATABASE_ECHO: bool = False  # Set to True for SQL query logging
+    
     class Config:
         env_file = ".env"
 

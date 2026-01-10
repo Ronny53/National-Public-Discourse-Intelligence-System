@@ -12,3 +12,6 @@ scikit-learn
 duckdb
 python-dotenv
 requests
+sqlalchemy
+psycopg2-binary
+alembic

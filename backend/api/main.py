@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.config.settings import get_settings
 from backend.api.routes import dashboard
+from backend.database.database import init_db
 
 settings = get_settings()
 
@@ -9,6 +10,16 @@ app = FastAPI(
     title=settings.APP_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database on application startup."""
+    try:
+        init_db()
+        print("Database initialized successfully.")
+    except Exception as e:
+        print(f"Warning: Could not initialize database: {e}")
+        print("This might be expected if migrations haven't been run yet.")
 
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
 
