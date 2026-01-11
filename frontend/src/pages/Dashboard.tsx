@@ -36,8 +36,13 @@ export default function Dashboard() {
     fetchData()
   }, [])
 
-  const riskLevel = data.escalation_risk.level
-  const riskScore = data.escalation_risk.score
+  const riskLevel = data.escalation_risk?.level || 'Low'
+  const riskScore = data.escalation_risk?.score || 0
+  const drivers = data.escalation_risk?.drivers || {
+    negativity: 0,
+    arousal: 0,
+    momentum: 0
+  }
 
   return (
     <div className="space-y-8">
@@ -96,13 +101,13 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-text-secondary">Negativity</span>
               <span className="text-sm font-mono text-text-primary">
-                {(data.escalation_risk.drivers.negativity * 100).toFixed(0)}%
+                {(drivers.negativity * 100).toFixed(0)}%
               </span>
             </div>
             <div className="h-1.5 bg-surface rounded-full overflow-hidden">
               <div 
                 className="h-full bg-danger rounded-full transition-all duration-500"
-                style={{ width: `${data.escalation_risk.drivers.negativity * 100}%` }}
+                style={{ width: `${drivers.negativity * 100}%` }}
               />
             </div>
           </div>
@@ -111,13 +116,13 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-text-secondary">Emotional Arousal</span>
               <span className="text-sm font-mono text-text-primary">
-                {(data.escalation_risk.drivers.arousal * 100).toFixed(0)}%
+                {(drivers.arousal * 100).toFixed(0)}%
               </span>
             </div>
             <div className="h-1.5 bg-surface rounded-full overflow-hidden">
               <div 
                 className="h-full bg-warning rounded-full transition-all duration-500"
-                style={{ width: `${data.escalation_risk.drivers.arousal * 100}%` }}
+                style={{ width: `${drivers.arousal * 100}%` }}
               />
             </div>
           </div>
@@ -126,13 +131,13 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-text-secondary">Momentum</span>
               <span className="text-sm font-mono text-text-primary">
-                {(data.escalation_risk.drivers.momentum * 100).toFixed(0)}%
+                {(drivers.momentum * 100).toFixed(0)}%
               </span>
             </div>
             <div className="h-1.5 bg-surface rounded-full overflow-hidden">
               <div 
                 className="h-full bg-accent rounded-full transition-all duration-500"
-                style={{ width: `${data.escalation_risk.drivers.momentum * 100}%` }}
+                style={{ width: `${drivers.momentum * 100}%` }}
               />
             </div>
           </div>
