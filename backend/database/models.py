@@ -1,9 +1,30 @@
-from sqlalchemy import Column, String, Integer, Float, DateTime, Text, Boolean, ForeignKey, JSON
+from sqlalchemy import Column, String, Integer, Float, DateTime, Text, Boolean, ForeignKey, JSON, Index
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 import uuid
 from backend.database.database import Base
+
+# Use String for UUID in SQLite, UUID type for PostgreSQL
+from backend.config.settings import get_settings
+settings = get_settings()
+
+if settings.DATABASE_URL.startswith("sqlite"):
+    # SQLite doesn't support UUID type, use String
+    UUID_TYPE = String(36)
+    # For SQLite, we need to convert UUID to string
+    def uuid_default():
+        return str(uuid.uuid4())
+else:
+    # PostgreSQL supports UUID type
+    try:
+        from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+        UUID_TYPE = PG_UUID(as_uuid=True)
+        uuid_default = uuid.uuid4
+    except ImportError:
+        # Fallback if psycopg2-binary is not installed or not PostgreSQL
+        UUID_TYPE = String(36)
+        def uuid_default():
+            return str(uuid.uuid4())
 
 
 class SocialPost(Base):
@@ -38,7 +59,7 @@ class PostAnalysis(Base):
     """
     __tablename__ = "post_analyses"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID_TYPE, primary_key=True, default=uuid_default)
     post_id = Column(String, ForeignKey("social_posts.id", ondelete="CASCADE"), nullable=False, index=True)
     
     # Sentiment Analysis
@@ -61,7 +82,7 @@ class IssueCluster(Base):
     """
     __tablename__ = "issue_clusters"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID_TYPE, primary_key=True, default=uuid_default)
     cluster_id = Column(Integer, nullable=False, index=True)  # K-means cluster ID
     label = Column(String, nullable=False, index=True)
     top_keywords = Column(JSON, nullable=False)  # List of keywords
@@ -79,7 +100,7 @@ class TrendData(Base):
     """
     __tablename__ = "trend_data"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID_TYPE, primary_key=True, default=uuid_default)
     keyword = Column(String, nullable=False, index=True)
     timestamp = Column(DateTime, nullable=False, index=True)
     interest_value = Column(Integer, nullable=False)  # 0-100
@@ -87,9 +108,7 @@ class TrendData(Base):
     
     # Composite index for efficient queries
     __table_args__ = (
-        {'postgresql_indexes': [
-            {'name': 'idx_keyword_timestamp', 'columns': ['keyword', 'timestamp']}
-        ]}
+        Index('idx_keyword_timestamp', 'keyword', 'timestamp'),
     )
 
 
@@ -99,7 +118,7 @@ class DashboardSummary(Base):
     """
     __tablename__ = "dashboard_summaries"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID_TYPE, primary_key=True, default=uuid_default)
     
     # Indices
     trust_index = Column(Float, nullable=False)

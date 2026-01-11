@@ -19,7 +19,9 @@ class Settings(BaseSettings):
     ENABLE_SYNTHETIC_DATA_FALLBACK: bool = True
     
     # Database Configuration
-    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/nis_db"
+    # Use SQLite for development (no server needed), PostgreSQL for production
+    # Set DATABASE_URL environment variable to use PostgreSQL
+    DATABASE_URL: str = "sqlite:///./nis_dev.db"  # SQLite for development
     DATABASE_ECHO: bool = False  # Set to True for SQL query logging
     
     class Config:
