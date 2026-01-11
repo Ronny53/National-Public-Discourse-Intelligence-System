@@ -54,7 +54,7 @@ export default function MetricCard({
   }
 
   return (
-    <div className="py-4 px-1">
+    <div className="py-5 px-5 border border-border rounded-md">
       <div className="flex items-start justify-between mb-2">
         <span className="metric-label">{label}</span>
         {trend && (

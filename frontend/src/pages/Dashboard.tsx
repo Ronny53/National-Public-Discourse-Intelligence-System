@@ -97,7 +97,7 @@ export default function Dashboard() {
       <div>
         <h2 className="section-title mb-4">Risk Drivers</h2>
         <div className="grid grid-cols-3 gap-6">
-          <div className="py-3">
+          <div className="py-4 px-5 border border-border rounded-md">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-text-secondary">Negativity</span>
               <span className="text-sm font-mono text-text-primary">
@@ -112,7 +112,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="py-3">
+          <div className="py-4 px-5 border border-border rounded-md">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-text-secondary">Emotional Arousal</span>
               <span className="text-sm font-mono text-text-primary">
@@ -127,7 +127,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="py-3">
+          <div className="py-4 px-5 border border-border rounded-md">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-text-secondary">Momentum</span>
               <span className="text-sm font-mono text-text-primary">

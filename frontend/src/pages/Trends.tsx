@@ -63,7 +63,7 @@ export default function Trends() {
         key: 'post_count',
         label: 'Volume',
         render: (row: IssueCluster) => (
-          <span className="font-mono text-text-secondary">{row.post_count || row.size || 0}</span>
+          <span className="font-mono text-text-secondary">{row.post_count || 0}</span>
         )
       },
     {

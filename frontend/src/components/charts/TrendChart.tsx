@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { 
   LineChart, 
   Line, 
@@ -54,6 +55,70 @@ function CustomTooltip({ active, payload, label }: TooltipProps) {
 }
 
 export default function TrendChart({ data }: TrendChartProps) {
+  const [animatedData, setAnimatedData] = useState<any[]>([])
+  const [isAnimating, setIsAnimating] = useState(true)
+  const [validData, setValidData] = useState<any[]>([])
+
+  useEffect(() => {
+    if (!data || !data.length) {
+      setValidData([])
+      setAnimatedData([])
+      setIsAnimating(false)
+      return
+    }
+
+    // Validate data structure
+    const filtered = data.filter(trend => trend && trend.keyword && trend.data && Array.isArray(trend.data) && trend.data.length > 0)
+    setValidData(filtered)
+    
+    if (filtered.length === 0) {
+      setAnimatedData([])
+      setIsAnimating(false)
+      return
+    }
+
+    // Use dates from the first trend (all trends should have same dates)
+    // Transform data for chart: merge all trend lines into single array
+    const fullData = filtered[0].data.map((point: any, idx: number) => {
+      const merged: Record<string, string | number> = {
+        date: point.date,
+        displayDate: new Date(point.date).toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric' 
+        })
+      }
+      // Add value for each trend keyword
+      filtered.forEach(trend => {
+        merged[trend.keyword] = trend.data[idx]?.value ?? 0
+      })
+      return merged
+    })
+
+    // Reset animation
+    setIsAnimating(true)
+    setAnimatedData([])
+
+    // Progressive reveal animation
+    const totalPoints = fullData.length
+    const duration = 1500 // Total animation duration in ms
+    const interval = Math.max(10, duration / totalPoints) // Ensure minimum interval
+
+    let currentIndex = 0
+    const timer = setInterval(() => {
+      currentIndex++
+      if (currentIndex <= totalPoints) {
+        setAnimatedData(fullData.slice(0, currentIndex))
+      } else {
+        clearInterval(timer)
+        setIsAnimating(false)
+        // Ensure all data is shown at the end
+        setAnimatedData(fullData)
+      }
+    }, interval)
+
+    return () => clearInterval(timer)
+  }, [data])
+
   if (!data || !data.length) {
     return (
       <div className="h-[300px] flex items-center justify-center text-text-muted">
@@ -61,9 +126,6 @@ export default function TrendChart({ data }: TrendChartProps) {
       </div>
     )
   }
-
-  // Validate data structure
-  const validData = data.filter(trend => trend && trend.keyword && trend.data && Array.isArray(trend.data) && trend.data.length > 0)
   
   if (validData.length === 0) {
     return (
@@ -73,25 +135,10 @@ export default function TrendChart({ data }: TrendChartProps) {
     )
   }
 
-  // Transform data for chart: merge all trend lines into single array
-  const mergedData = validData[0].data.map((point, idx) => {
-    const merged: Record<string, string | number> = {
-      date: point.date,
-      displayDate: new Date(point.date).toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric' 
-      })
-    }
-    validData.forEach(trend => {
-      merged[trend.keyword] = trend.data[idx]?.value ?? 0
-    })
-    return merged
-  })
-
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={280}>
       <LineChart 
-        data={mergedData}
+        data={animatedData}
         margin={{ top: 10, right: 10, left: -10, bottom: 10 }}
       >
         <CartesianGrid 
@@ -127,6 +174,9 @@ export default function TrendChart({ data }: TrendChartProps) {
             strokeWidth={1.5}
             dot={false}
             activeDot={{ r: 4, strokeWidth: 0 }}
+            isAnimationActive={isAnimating}
+            animationDuration={300}
+            animationEasing="ease-out"
           />
         ))}
       </LineChart>

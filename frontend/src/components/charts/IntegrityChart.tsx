@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { 
   BarChart, 
   Bar, 
@@ -35,15 +36,42 @@ function CustomTooltip({ active, payload }: TooltipProps) {
 }
 
 export default function IntegrityChart({ amplificationScore, coordinationScore }: IntegrityChartProps) {
-  const data = [
+  const [animatedData, setAnimatedData] = useState<any[]>([])
+  const [isAnimating, setIsAnimating] = useState(true)
+
+  const fullData = [
     { name: 'Amplification', value: amplificationScore, fill: '#f59e0b' },
     { name: 'Coordination', value: coordinationScore, fill: '#8b5cf6' }
   ]
 
+  useEffect(() => {
+    // Reset animation
+    setIsAnimating(true)
+    setAnimatedData([])
+
+    // Progressive reveal animation
+    const totalBars = fullData.length
+    const duration = 800 // Total animation duration in ms
+    const interval = duration / totalBars
+
+    let currentIndex = 0
+    const timer = setInterval(() => {
+      currentIndex++
+      if (currentIndex <= totalBars) {
+        setAnimatedData(fullData.slice(0, currentIndex))
+      } else {
+        clearInterval(timer)
+        setIsAnimating(false)
+      }
+    }, interval)
+
+    return () => clearInterval(timer)
+  }, [amplificationScore, coordinationScore])
+
   return (
     <ResponsiveContainer width="100%" height={120}>
       <BarChart 
-        data={data}
+        data={animatedData}
         layout="vertical"
         margin={{ top: 10, right: 20, left: 80, bottom: 10 }}
       >
@@ -68,8 +96,11 @@ export default function IntegrityChart({ amplificationScore, coordinationScore }
           dataKey="value" 
           radius={[0, 2, 2, 0]}
           maxBarSize={16}
+          isAnimationActive={isAnimating}
+          animationDuration={400}
+          animationEasing="ease-out"
         >
-          {data.map((entry) => (
+          {animatedData.map((entry) => (
             <Cell key={entry.name} fill={entry.fill} />
           ))}
         </Bar>

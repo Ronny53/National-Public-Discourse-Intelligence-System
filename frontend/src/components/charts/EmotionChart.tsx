@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { 
   BarChart, 
   Bar, 
@@ -47,13 +48,40 @@ function CustomTooltip({ active, payload }: TooltipProps) {
 }
 
 export default function EmotionChart({ data }: EmotionChartProps) {
-  // Sort by value descending
-  const sortedData = [...data].sort((a, b) => b.value - a.value)
+  const [animatedData, setAnimatedData] = useState<EmotionData[]>([])
+  const [isAnimating, setIsAnimating] = useState(true)
+
+  useEffect(() => {
+    // Sort by value descending
+    const sortedData = [...data].sort((a, b) => b.value - a.value)
+
+    // Reset animation
+    setIsAnimating(true)
+    setAnimatedData([])
+
+    // Progressive reveal animation (top to bottom for bar chart)
+    const totalBars = sortedData.length
+    const duration = 1200 // Total animation duration in ms
+    const interval = duration / totalBars
+
+    let currentIndex = 0
+    const timer = setInterval(() => {
+      currentIndex++
+      if (currentIndex <= totalBars) {
+        setAnimatedData(sortedData.slice(0, currentIndex))
+      } else {
+        clearInterval(timer)
+        setIsAnimating(false)
+      }
+    }, interval)
+
+    return () => clearInterval(timer)
+  }, [data])
 
   return (
     <ResponsiveContainer width="100%" height={280}>
       <BarChart 
-        data={sortedData}
+        data={animatedData}
         layout="vertical"
         margin={{ top: 10, right: 20, left: 60, bottom: 10 }}
       >
@@ -78,8 +106,11 @@ export default function EmotionChart({ data }: EmotionChartProps) {
           dataKey="value" 
           radius={[0, 2, 2, 0]}
           maxBarSize={20}
+          isAnimationActive={isAnimating}
+          animationDuration={400}
+          animationEasing="ease-out"
         >
-          {sortedData.map((entry) => (
+          {animatedData.map((entry) => (
             <Cell 
               key={entry.emotion} 
               fill={EMOTION_COLORS[entry.emotion] || '#71717a'}

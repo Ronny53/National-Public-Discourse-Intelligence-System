@@ -2,6 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
+/* CSS Variables for Theme */
+:root {
+  /* Light theme */
+  --color-background: #ffffff;
+  --color-surface: #f8f9fa;
+  --color-surface-elevated: #ffffff;
+  --color-border: #e5e7eb;
+  --color-border-subtle: #f3f4f6;
+  --color-text-primary: #111827;
+  --color-text-secondary: #4b5563;
+  --color-text-muted: #9ca3af;
+}
+
+.dark {
+  /* Dark theme */
+  --color-background: #0a0a0b;
+  --color-surface: #141415;
+  --color-surface-elevated: #1a1a1c;
+  --color-border: #27272a;
+  --color-border-subtle: #1f1f22;
+  --color-text-primary: #fafafa;
+  --color-text-secondary: #a1a1aa;
+  --color-text-muted: #71717a;
+}
+
 /* Base Styles */
 * {
   margin: 0;
@@ -17,10 +42,10 @@ html {
 
 body {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  background-color: #0a0a0b;
-  color: #fafafa;
   line-height: 1.5;
   min-height: 100vh;
+  @apply bg-background text-text-primary;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 #root {
@@ -34,6 +59,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.2;
+  @apply text-text-primary;
 }
 
 h1 { font-size: 2rem; }
@@ -44,7 +70,7 @@ h5 { font-size: 1rem; }
 h6 { font-size: 0.875rem; }
 
 p {
-  color: #a1a1aa;
+  @apply text-text-secondary;
 }
 
 /* Custom Component Classes */
@@ -54,13 +80,13 @@ p {
     font-weight: 700;
     letter-spacing: -0.03em;
     line-height: 1;
-    color: #fafafa;
+    @apply text-text-primary;
   }
 
   .metric-label {
     font-size: 0.8125rem;
     font-weight: 500;
-    color: #71717a;
+    @apply text-text-muted;
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
@@ -68,37 +94,32 @@ p {
   .section-title {
     font-size: 0.75rem;
     font-weight: 600;
-    color: #71717a;
+    @apply text-text-muted;
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
 
   .card {
-    background-color: #141415;
-    border: 1px solid #27272a;
-    border-radius: 0.5rem;
-    padding: 1.25rem;
+    @apply bg-surface border border-border rounded-md p-5;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
   }
 
   .input-field {
     width: 100%;
     padding: 0.625rem 0.875rem;
-    background-color: #141415;
-    border: 1px solid #27272a;
-    border-radius: 0.375rem;
-    color: #fafafa;
+    @apply bg-surface border border-border rounded text-text-primary;
     font-size: 0.875rem;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
   }
 
   .input-field:focus {
     outline: none;
-    border-color: #3b82f6;
+    @apply border-accent;
     box-shadow: 0 0 0 1px #3b82f6;
   }
 
   .input-field::placeholder {
-    color: #71717a;
+    @apply text-text-muted;
   }
 
   .btn-primary {
@@ -106,18 +127,16 @@ p {
     align-items: center;
     justify-content: center;
     padding: 0.625rem 1.25rem;
-    background-color: #3b82f6;
-    color: #fafafa;
+    @apply bg-accent text-white rounded;
     font-size: 0.875rem;
     font-weight: 500;
-    border-radius: 0.375rem;
     border: none;
     cursor: pointer;
     transition: background-color 0.15s ease;
   }
 
   .btn-primary:hover {
-    background-color: #2563eb;
+    @apply bg-accent-muted;
   }
 
   .btn-primary:disabled {
@@ -130,61 +149,55 @@ p {
     align-items: center;
     justify-content: center;
     padding: 0.625rem 1.25rem;
-    background-color: transparent;
-    color: #a1a1aa;
+    @apply bg-transparent border border-border rounded;
+    @apply text-text-secondary;
     font-size: 0.875rem;
     font-weight: 500;
-    border-radius: 0.375rem;
-    border: 1px solid #27272a;
     cursor: pointer;
-    transition: border-color 0.15s ease, color 0.15s ease;
+    transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
   }
 
   .btn-secondary:hover {
-    border-color: #3f3f46;
-    color: #fafafa;
+    @apply border-border-subtle text-text-primary bg-surface;
   }
 
   .nav-link {
     padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
     font-weight: 500;
-    color: #71717a;
-    border-radius: 0.375rem;
+    @apply text-text-muted rounded;
     transition: color 0.15s ease, background-color 0.15s ease;
   }
 
   .nav-link:hover {
-    color: #a1a1aa;
-    background-color: #1a1a1c;
+    @apply text-text-secondary bg-surface-elevated;
   }
 
   .nav-link.active {
-    color: #fafafa;
-    background-color: #1a1a1c;
+    @apply text-text-primary bg-surface-elevated;
   }
 
   .table-header {
     font-size: 0.75rem;
     font-weight: 600;
-    color: #71717a;
+    @apply text-text-muted;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     padding: 0.75rem 1rem;
     text-align: left;
-    border-bottom: 1px solid #27272a;
+    @apply border-b border-border;
   }
 
   .table-cell {
     font-size: 0.875rem;
-    color: #fafafa;
+    @apply text-text-primary;
     padding: 0.875rem 1rem;
-    border-bottom: 1px solid #1f1f22;
+    @apply border-b border-border-subtle;
   }
 
   .chart-explanation {
     font-size: 0.8125rem;
-    color: #71717a;
+    @apply text-text-muted;
     margin-top: 0.75rem;
     line-height: 1.5;
   }
@@ -197,38 +210,37 @@ p {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0a0a0b;
+  @apply bg-background;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #27272a;
-  border-radius: 4px;
+  @apply bg-border rounded;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+  @apply bg-border-subtle;
 }
 
 /* Selection */
 ::selection {
-  background-color: #3b82f6;
-  color: #fafafa;
+  @apply bg-accent text-white;
 }
 
 /* Focus visible for accessibility */
 :focus-visible {
-  outline: 2px solid #3b82f6;
+  @apply outline-accent;
+  outline-width: 2px;
   outline-offset: 2px;
 }
 
 /* Recharts Customization */
 .recharts-cartesian-grid-horizontal line,
 .recharts-cartesian-grid-vertical line {
-  stroke: #1f1f22;
+  @apply stroke-border-subtle;
 }
 
 .recharts-text {
-  fill: #71717a;
+  @apply fill-text-muted;
   font-size: 0.75rem;
 }
 

@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { 
   LineChart, 
   Line, 
@@ -51,19 +52,46 @@ function CustomTooltip({ active, payload, label }: TooltipProps) {
 }
 
 export default function SentimentChart({ data }: SentimentChartProps) {
-  // Format dates for display
-  const formattedData = data.map(d => ({
-    ...d,
-    displayDate: new Date(d.date).toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric' 
-    })
-  }))
+  const [animatedData, setAnimatedData] = useState<any[]>([])
+  const [isAnimating, setIsAnimating] = useState(true)
+
+  useEffect(() => {
+    // Format dates for display
+    const formattedData = data.map(d => ({
+      ...d,
+      displayDate: new Date(d.date).toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric' 
+      })
+    }))
+
+    // Reset animation
+    setIsAnimating(true)
+    setAnimatedData([])
+
+    // Progressive reveal animation
+    const totalPoints = formattedData.length
+    const duration = 1500 // Total animation duration in ms
+    const interval = duration / totalPoints
+
+    let currentIndex = 0
+    const timer = setInterval(() => {
+      currentIndex++
+      if (currentIndex <= totalPoints) {
+        setAnimatedData(formattedData.slice(0, currentIndex))
+      } else {
+        clearInterval(timer)
+        setIsAnimating(false)
+      }
+    }, interval)
+
+    return () => clearInterval(timer)
+  }, [data])
 
   return (
     <ResponsiveContainer width="100%" height={280}>
       <LineChart 
-        data={formattedData}
+        data={animatedData}
         margin={{ top: 10, right: 10, left: -10, bottom: 10 }}
       >
         <CartesianGrid 
@@ -98,6 +126,9 @@ export default function SentimentChart({ data }: SentimentChartProps) {
           strokeWidth={1.5}
           dot={false}
           activeDot={{ r: 4, strokeWidth: 0 }}
+          isAnimationActive={isAnimating}
+          animationDuration={300}
+          animationEasing="ease-out"
         />
         <Line 
           type="monotone" 
@@ -106,6 +137,9 @@ export default function SentimentChart({ data }: SentimentChartProps) {
           strokeWidth={1.5}
           dot={false}
           activeDot={{ r: 4, strokeWidth: 0 }}
+          isAnimationActive={isAnimating}
+          animationDuration={300}
+          animationEasing="ease-out"
         />
         <Line 
           type="monotone" 
@@ -114,6 +148,9 @@ export default function SentimentChart({ data }: SentimentChartProps) {
           strokeWidth={1.5}
           dot={false}
           activeDot={{ r: 4, strokeWidth: 0 }}
+          isAnimationActive={isAnimating}
+          animationDuration={300}
+          animationEasing="ease-out"
         />
       </LineChart>
     </ResponsiveContainer>
