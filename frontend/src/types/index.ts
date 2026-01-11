@@ -76,6 +76,26 @@ export interface EmotionData {
   value: number
 }
 
+// Prediction Types
+export interface SentimentPrediction {
+  forecast_dates: string[]
+  predicted_sentiment: number[]
+  confidence_upper: number[]
+  confidence_lower: number[]
+  trend_direction: 'improving' | 'declining' | 'stable'
+  method: string
+  note?: string
+}
+
+export interface RiskPrediction {
+  predicted_risk: 'low' | 'medium' | 'high'
+  risk_score: number
+  trend: 'increasing' | 'decreasing' | 'stable'
+  confidence: 'low' | 'medium' | 'high'
+  note?: string
+  error?: string
+}
+
 // API Response wrapper
 export interface ApiResponse<T> {
   data: T | null

@@ -20,6 +20,7 @@ from backend.indices.trust_index import TrustIndex
 from backend.indices.volatility_index import VolatilityIndex
 from backend.indices.escalation_risk import EscalationRisk
 from backend.policy.policy_brief import PolicyBriefGenerator
+from backend.prediction.forecaster import SentimentForecaster
 
 # Database imports
 from backend.database.database import get_db
@@ -43,6 +44,7 @@ trust_index = TrustIndex()
 volatility_index = VolatilityIndex()
 escalation_risk = EscalationRisk()
 policy_brief_gen = PolicyBriefGenerator()
+sentiment_forecaster = SentimentForecaster()
 
 async def refresh_pipeline(db: Session = None):
     """
@@ -94,10 +96,11 @@ async def refresh_pipeline(db: Session = None):
                 emotions_agg[emo] += score
             
             # Save analysis to database
-            sentiment_label = "positive" if s_res > 0.1 else "negative" if s_res < -0.1 else "neutral"
+            compound_score = s_res.get('compound', 0.0)
+            sentiment_label = s_res.get('label', 'neutral')
             db_service.save_post_analysis(
                 post_id=p.id,
-                sentiment_score=s_res,
+                sentiment_score=compound_score,
                 sentiment_label=sentiment_label,
                 emotion_scores=e_res
             )
@@ -183,16 +186,37 @@ async def get_dashboard_summary(
         should_refresh = True
     
     if should_refresh:
-        # Trigger refresh (in background for better UX)
-        background_tasks.add_task(refresh_pipeline, db)
+        # If no data exists, trigger immediate refresh (not background) to get initial data
+        if not latest_summary:
+            try:
+                # Run refresh synchronously to get initial data
+                await refresh_pipeline(db)
+                # Fetch the newly created summary
+                latest_summary = db_service.get_latest_dashboard_summary()
+            except Exception as e:
+                print(f"Error during initial refresh: {e}")
+                # Fall through to return empty data
+        else:
+            # Data exists but is stale, refresh in background
+            background_tasks.add_task(refresh_pipeline, db)
+        
         # Return the latest summary we have, or empty if none
         if latest_summary:
+            # Calculate default drivers if not available (estimate from risk score)
+            risk_score = latest_summary.escalation_risk_score
+            default_drivers = {
+                "negativity": min(1.0, max(0.0, (risk_score / 100) * 0.7)),
+                "arousal": min(1.0, max(0.0, (risk_score / 100) * 0.6)),
+                "momentum": min(1.0, max(0.0, (risk_score / 100) * 0.8))
+            }
+            
             return {
                 "trust_index": latest_summary.trust_index,
                 "volatility_index": latest_summary.volatility_index,
                 "escalation_risk": {
                     "score": latest_summary.escalation_risk_score,
-                    "level": latest_summary.escalation_risk_level
+                    "level": latest_summary.escalation_risk_level,
+                    "drivers": default_drivers
                 },
                 "integrity_metrics": {
                     "amplification": {"amplification_score": latest_summary.amplification_score},
@@ -205,25 +229,55 @@ async def get_dashboard_summary(
             return {
                 "trust_index": 0.0,
                 "volatility_index": 0.0,
-                "escalation_risk": {"score": 0.0, "level": "low"},
+                "escalation_risk": {
+                    "score": 0.0,
+                    "level": "Low",
+                    "drivers": {
+                        "negativity": 0.0,
+                        "arousal": 0.0,
+                        "momentum": 0.0
+                    }
+                },
                 "integrity_metrics": {
-                    "amplification": {"amplification_score": 0.0},
-                    "coordination": {"burst_score": 0.0}
+                    "amplification": {
+                        "amplification_score": 0.0,
+                        "detected_campaigns": 0
+                    },
+                    "coordination": {
+                        "burst_score": 0.0,
+                        "detected_bursts": 0
+                    }
                 },
                 "total_posts_analyzed": 0
             }
     
     # Return latest summary from database
+    # Calculate default drivers if not available (estimate from risk score)
+    risk_score = latest_summary.escalation_risk_score
+    # Estimate drivers based on risk score (simple approximation)
+    default_drivers = {
+        "negativity": min(1.0, max(0.0, (risk_score / 100) * 0.7)),
+        "arousal": min(1.0, max(0.0, (risk_score / 100) * 0.6)),
+        "momentum": min(1.0, max(0.0, (risk_score / 100) * 0.8))
+    }
+    
     return {
         "trust_index": latest_summary.trust_index,
         "volatility_index": latest_summary.volatility_index,
         "escalation_risk": {
             "score": latest_summary.escalation_risk_score,
-            "level": latest_summary.escalation_risk_level
+            "level": latest_summary.escalation_risk_level,
+            "drivers": default_drivers
         },
         "integrity_metrics": {
-            "amplification": {"amplification_score": latest_summary.amplification_score},
-            "coordination": {"burst_score": latest_summary.coordination_score}
+            "amplification": {
+                "amplification_score": latest_summary.amplification_score,
+                "detected_campaigns": 0  # Default, can be enhanced later
+            },
+            "coordination": {
+                "burst_score": latest_summary.coordination_score,
+                "detected_bursts": 0  # Default, can be enhanced later
+            }
         },
         "total_posts_analyzed": latest_summary.total_posts_analyzed
     }
@@ -333,7 +387,25 @@ async def get_policy_brief(db: Session = Depends(get_db)):
     clusters = db_service.get_latest_clusters(limit=10)
     
     if not latest_summary:
-        raise HTTPException(status_code=404, detail="No dashboard summary available. Please refresh data first.")
+        # Try to refresh data first
+        try:
+            await refresh_pipeline(db)
+            latest_summary = db_service.get_latest_dashboard_summary()
+            clusters = db_service.get_latest_clusters(limit=10)
+        except Exception as e:
+            print(f"Error refreshing data for brief: {e}")
+    
+    if not latest_summary:
+        # Return a default brief instead of 404
+        return {
+            "executive_summary": "No data available yet. Please refresh the dashboard to generate analysis.",
+            "recommended_actions": [
+                "Refresh data collection to populate dashboard",
+                "Ensure data sources are configured correctly"
+            ],
+            "responsible_ministries": [],
+            "generated_at": datetime.utcnow().isoformat()
+        }
     
     # Convert database models to dict format expected by policy brief generator
     summary_dict = {
@@ -344,8 +416,14 @@ async def get_policy_brief(db: Session = Depends(get_db)):
             "level": latest_summary.escalation_risk_level
         },
         "integrity_metrics": {
-            "amplification": {"amplification_score": latest_summary.amplification_score},
-            "coordination": {"burst_score": latest_summary.coordination_score}
+            "amplification": {
+                "amplification_score": latest_summary.amplification_score,
+                "detected_campaigns": 0  # Default, can be enhanced later
+            },
+            "coordination": {
+                "burst_score": latest_summary.coordination_score,
+                "detected_bursts": 0  # Default, can be enhanced later
+            }
         },
         "total_posts_analyzed": latest_summary.total_posts_analyzed
     }
@@ -373,3 +451,42 @@ async def force_refresh(db: Session = Depends(get_db)):
         "status": "refreshed",
         "timestamp": datetime.utcnow().isoformat()
     }
+
+@router.get("/predictions/sentiment")
+async def get_sentiment_predictions(
+    days_ahead: int = 7,
+    db: Session = Depends(get_db)
+):
+    """
+    Get sentiment trend predictions for the next N days.
+    
+    Args:
+        days_ahead: Number of days to forecast (default: 7, max: 30)
+    """
+    days_ahead = min(max(1, days_ahead), 30)  # Clamp between 1 and 30
+    
+    forecast = sentiment_forecaster.forecast_sentiment_trends(
+        db=db,
+        days_ahead=days_ahead,
+        use_prophet=True
+    )
+    
+    return forecast
+
+@router.get("/predictions/risk")
+async def get_risk_predictions(
+    days_ahead: int = 7,
+    db: Session = Depends(get_db)
+):
+    """
+    Get escalation risk predictions for the next N days.
+    
+    Args:
+        days_ahead: Number of days to forecast (default: 7)
+    """
+    prediction = sentiment_forecaster.predict_escalation_risk(
+        db=db,
+        days_ahead=days_ahead
+    )
+    
+    return prediction

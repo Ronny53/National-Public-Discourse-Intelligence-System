@@ -2,7 +2,9 @@ import type {
   DashboardSummary, 
   IssueCluster, 
   TrendData, 
-  PolicyBrief 
+  PolicyBrief,
+  SentimentPrediction,
+  RiskPrediction
 } from '../types'
 import { 
   mockDashboardSummary, 
@@ -54,6 +56,28 @@ export const api = {
         timestamp: new Date().toISOString() 
       }
     }
+  },
+
+  getSentimentPredictions: (daysAhead: number = 7): Promise<SentimentPrediction> => {
+    return fetchWithFallback(`/predictions/sentiment?days_ahead=${daysAhead}`, {
+      forecast_dates: [],
+      predicted_sentiment: [],
+      confidence_upper: [],
+      confidence_lower: [],
+      trend_direction: 'stable' as const,
+      method: 'default',
+      note: 'Prediction data unavailable'
+    })
+  },
+
+  getRiskPredictions: (daysAhead: number = 7): Promise<RiskPrediction> => {
+    return fetchWithFallback(`/predictions/risk?days_ahead=${daysAhead}`, {
+      predicted_risk: 'medium' as const,
+      risk_score: 5.0,
+      trend: 'stable' as const,
+      confidence: 'low' as const,
+      note: 'Prediction data unavailable'
+    })
   }
 }
 
