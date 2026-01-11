@@ -1,4 +1,4 @@
-fastapi
+﻿fastapi
 uvicorn[standard]
 pydantic
 pydantic-settings
@@ -15,3 +15,5 @@ requests
 sqlalchemy
 psycopg2-binary
 alembic
+statsmodels
+prophet

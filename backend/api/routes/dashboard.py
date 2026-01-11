@@ -20,6 +20,7 @@ from backend.indices.trust_index import TrustIndex
 from backend.indices.volatility_index import VolatilityIndex
 from backend.indices.escalation_risk import EscalationRisk
 from backend.policy.policy_brief import PolicyBriefGenerator
+from backend.prediction.forecaster import SentimentForecaster
 
 # Database imports
 from backend.database.database import get_db
@@ -43,6 +44,7 @@ trust_index = TrustIndex()
 volatility_index = VolatilityIndex()
 escalation_risk = EscalationRisk()
 policy_brief_gen = PolicyBriefGenerator()
+sentiment_forecaster = SentimentForecaster()
 
 async def refresh_pipeline(db: Session = None):
     """
@@ -373,3 +375,42 @@ async def force_refresh(db: Session = Depends(get_db)):
         "status": "refreshed",
         "timestamp": datetime.utcnow().isoformat()
     }
+
+@router.get("/predictions/sentiment")
+async def get_sentiment_predictions(
+    days_ahead: int = 7,
+    db: Session = Depends(get_db)
+):
+    """
+    Get sentiment trend predictions for the next N days.
+    
+    Args:
+        days_ahead: Number of days to forecast (default: 7, max: 30)
+    """
+    days_ahead = min(max(1, days_ahead), 30)  # Clamp between 1 and 30
+    
+    forecast = sentiment_forecaster.forecast_sentiment_trends(
+        db=db,
+        days_ahead=days_ahead,
+        use_prophet=True
+    )
+    
+    return forecast
+
+@router.get("/predictions/risk")
+async def get_risk_predictions(
+    days_ahead: int = 7,
+    db: Session = Depends(get_db)
+):
+    """
+    Get escalation risk predictions for the next N days.
+    
+    Args:
+        days_ahead: Number of days to forecast (default: 7)
+    """
+    prediction = sentiment_forecaster.predict_escalation_risk(
+        db=db,
+        days_ahead=days_ahead
+    )
+    
+    return prediction

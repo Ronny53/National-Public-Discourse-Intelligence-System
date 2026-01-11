@@ -14,7 +14,7 @@ class RedditClient:
     def __init__(self):
         # Check if keys are present and not default placeholders
         has_id = settings.REDDIT_CLIENT_ID and settings.REDDIT_CLIENT_SECRET
-        is_placeholder = "your_client_id" in settings.REDDIT_CLIENT_ID
+        is_placeholder = "your_client_id" in str(settings.REDDIT_CLIENT_ID).lower()
         
         self.enabled = has_id and not is_placeholder
         
@@ -25,29 +25,61 @@ class RedditClient:
                     client_secret=settings.REDDIT_CLIENT_SECRET,
                     user_agent=settings.REDDIT_USER_AGENT
                 )
+                # Test connection by making a simple request
+                try:
+                    _ = self.reddit.subreddit("test").display_name
+                    logger.info("Reddit API connection successful. Real data mode enabled.")
+                except Exception as test_e:
+                    logger.warning(f"Reddit API test failed: {test_e}. Will attempt real fetch but may fallback.")
             except Exception as e:
                 logger.error(f"Failed to init Reddit client: {e}")
                 self.enabled = False
         else:
             logger.warning("Reddit credentials missing or invalid. Using synthetic data mode.")
+            logger.info("To enable real Reddit data, set REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET in .env file")
             self.reddit = None
 
     def fetch_recent_posts(self, subreddit_name: str, limit: int = 50) -> List[SocialPost]:
-        """Fetches recent posts from a specific subreddit."""
+        """
+        Fetches recent posts from a specific subreddit.
+        Prioritizes real data, falls back to synthetic only if necessary.
+        """
         if not self.enabled:
+            logger.info(f"Reddit API not enabled. Using synthetic data for r/{subreddit_name}")
             return self._generate_synthetic_posts(subreddit_name, limit)
 
         try:
             subreddit = self.reddit.subreddit(subreddit_name)
             posts = []
-            for submission in subreddit.new(limit=limit):
+            fetched_count = 0
+            
+            # Try to fetch real posts
+            for submission in subreddit.new(limit=limit * 2):  # Fetch more to account for stickied posts
                 if submission.stickied:
                     continue
                 
+                # Skip if post has no text content (link-only posts)
+                if not submission.selftext and not submission.title:
+                    continue
+                
                 posts.append(self._map_submission_to_schema(submission))
-            return posts
+                fetched_count += 1
+                
+                if fetched_count >= limit:
+                    break
+            
+            if posts:
+                logger.info(f"Successfully fetched {len(posts)} real posts from r/{subreddit_name}")
+                return posts
+            else:
+                logger.warning(f"No posts retrieved from r/{subreddit_name}. Using synthetic data.")
+                if settings.ENABLE_SYNTHETIC_DATA_FALLBACK:
+                    return self._generate_synthetic_posts(subreddit_name, limit)
+                return []
+                
         except Exception as e:
-            logger.error(f"Error fetching from Reddit: {e}")
+            logger.error(f"Error fetching from Reddit r/{subreddit_name}: {e}")
+            logger.info("Falling back to synthetic data")
             if settings.ENABLE_SYNTHETIC_DATA_FALLBACK:
                 return self._generate_synthetic_posts(subreddit_name, limit)
             return []
