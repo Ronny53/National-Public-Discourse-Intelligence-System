@@ -88,11 +88,47 @@ This creates a feedback loop where policy decisions are informed by authentic pu
 ## Technical Architecture
 
 ### Backend
-- **Framework**: FastAPI (Python)
+- **Framework**: FastAPI (Python) with modern async/await patterns
 - **NLP Libraries**: VADER Sentiment, TextBlob
 - **ML Libraries**: scikit-learn (clustering, vectorization)
 - **Data Sources**: Reddit API (PRAW), Google Trends (pytrends)
 - **Data Processing**: Pandas, NumPy
+- **Database**: SQLAlchemy ORM with SQLite (dev) / PostgreSQL (prod)
+
+### Core Infrastructure (Production-Grade)
+
+The backend implements enterprise-level patterns for reliability and maintainability:
+
+#### 🔧 Dependency Injection (`backend/core/dependencies.py`)
+- **Lazy Initialization**: Services are only created when first accessed
+- **Thread-Safe Singletons**: Expensive resources (ML models, API clients) are shared safely
+- **Testing Support**: Easy service mocking with `container.override()` context manager
+- **Type-Safe Access**: Full type hints for IDE support and static analysis
+
+#### 📝 Structured Logging (`backend/core/logging.py`)
+- **Request Correlation**: Unique request IDs propagate through all log entries
+- **JSON Format**: Production-ready structured logs for log aggregation (ELK, CloudWatch)
+- **Pretty Console**: Colored, human-readable logs for development
+- **Performance Tracking**: `@log_execution_time()` decorator for profiling
+- **Log Rotation**: Automatic file rotation to prevent disk exhaustion
+
+#### ⚠️ Exception Handling (`backend/core/exceptions.py`)
+- **Hierarchical Exceptions**: Domain-specific errors (DataIngestion, Database, Analysis, Notification)
+- **Error Codes**: Standardized codes (NIS-XXXX) for client-side handling
+- **HTTP Mapping**: Automatic status code assignment (4xx, 5xx)
+- **Structured Responses**: Consistent JSON error format with request ID, timestamp, path
+
+#### 🛡️ Middleware Stack (`backend/core/middleware.py`)
+- **Request Context**: UUID generation, timing, structured logging
+- **Security Headers**: XSS protection, frame denial, content-type enforcement
+- **Rate Limiting**: Configurable per-IP request throttling
+- **CORS**: Properly configured cross-origin resource sharing
+
+#### 🚀 Application Lifecycle (`backend/api/main.py`)
+- **Lifespan Management**: Modern `asynccontextmanager` pattern (replaces deprecated `on_event`)
+- **Health Checks**: `/health` and `/ready` endpoints for container orchestrators
+- **Graceful Shutdown**: Proper resource cleanup on termination
+- **OpenAPI Docs**: Rich Swagger UI and ReDoc documentation
 
 ### Frontend
 - **Framework**: React with TypeScript
@@ -106,12 +142,19 @@ This creates a feedback loop where policy decisions are informed by authentic pu
 ```
 backend/
 ├── api/              # FastAPI routes and schemas
+├── core/             # 🆕 Production infrastructure
+│   ├── logging.py    # Structured logging with correlation IDs
+│   ├── exceptions.py # Hierarchical exception handling
+│   ├── dependencies.py # Dependency injection container
+│   └── middleware.py # Request context & security
 ├── ingestion/        # Data collection from social media
 ├── preprocessing/    # Text cleaning and deduplication
 ├── nlp/              # Sentiment and emotion analysis
 ├── integrity/        # Bot detection and amplification analysis
 ├── clustering/       # Topic clustering algorithms
 ├── indices/          # Risk, trust, and volatility calculations
+├── database/         # SQLAlchemy models and services
+├── email/            # Email alert service
 └── policy/           # Policy brief generation
 
 frontend/
@@ -339,6 +382,12 @@ National-Public-Discourse-Intelligence-System/
 │   │   └── routes/
 │   │       ├── dashboard.py  # Dashboard endpoints
 │   │       └── alerts.py     # Email alert endpoints
+│   ├── core/            # 🆕 Production infrastructure
+│   │   ├── __init__.py
+│   │   ├── logging.py       # Structured logging with request IDs
+│   │   ├── exceptions.py    # Hierarchical exceptions & error codes
+│   │   ├── dependencies.py  # Dependency injection container
+│   │   └── middleware.py    # Request context & security headers
 │   ├── clustering/      # Topic clustering
 │   ├── config/          # Configuration settings
 │   ├── database/        # Database models and services
