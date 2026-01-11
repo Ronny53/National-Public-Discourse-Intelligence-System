@@ -90,10 +90,90 @@ This creates a feedback loop where policy decisions are informed by authentic pu
 ### Backend
 - **Framework**: FastAPI (Python) with modern async/await patterns
 - **NLP Libraries**: VADER Sentiment, TextBlob
-- **ML Libraries**: scikit-learn (clustering, vectorization)
+- **ML Libraries**: scikit-learn (clustering, vectorization), statsmodels, prophet (forecasting)
 - **Data Sources**: Reddit API (PRAW), Google Trends (pytrends)
 - **Data Processing**: Pandas, NumPy
 - **Database**: SQLAlchemy ORM with SQLite (dev) / PostgreSQL (prod)
+
+### Database Schema
+
+The system uses a relational database structure to store social media posts, analyses, clusters, trends, and dashboard summaries:
+
+```mermaid
+erDiagram
+    social_posts ||--o{ post_analyses : "has"
+    social_posts {
+        string id PK
+        string source
+        string author_id
+        string subreddit
+        text title
+        text text
+        datetime created_at
+        string url
+        int score
+        float upvote_ratio
+        int num_comments
+        boolean is_synthetic
+        datetime ingested_at
+    }
+    
+    post_analyses {
+        uuid id PK
+        string post_id FK
+        float sentiment_score
+        string sentiment_label
+        json emotion_scores
+        datetime analyzed_at
+    }
+    
+    issue_clusters {
+        uuid id PK
+        int cluster_id
+        string label
+        json top_keywords
+        int size
+        float avg_sentiment
+        string trend
+        datetime created_at
+    }
+    
+    trend_data {
+        uuid id PK
+        string keyword
+        datetime timestamp
+        int interest_value
+        string region
+    }
+    
+    dashboard_summaries {
+        uuid id PK
+        float trust_index
+        float volatility_index
+        float escalation_risk_score
+        string escalation_risk_level
+        float escalation_negativity_driver
+        float escalation_arousal_driver
+        float escalation_momentum_driver
+        float amplification_score
+        float coordination_score
+        int total_posts_analyzed
+        int total_clusters
+        datetime created_at
+        datetime valid_until
+    }
+```
+
+**Table Relationships:**
+- `social_posts` → `post_analyses`: One-to-Many (one post can have multiple analyses over time)
+- All other tables are independent but linked through timestamps and aggregated data
+
+**Key Design Decisions:**
+- **Cascade Deletion**: Post analyses are automatically deleted when a post is removed
+- **JSON Storage**: Emotion scores and keywords stored as JSON for flexibility
+- **Composite Indexes**: Trend data has composite index on (keyword, timestamp) for efficient queries
+- **UUID Primary Keys**: Used for internal records (analyses, clusters, summaries) for better scalability
+- **Cache Expiration**: Dashboard summaries include `valid_until` timestamp for cache management
 
 ### Core Infrastructure (Production-Grade)
 
@@ -224,22 +304,22 @@ Beyond the core functionality, the system includes several advanced features and
 3. **Real-Time Updates**: Background task processing ensures dashboard remains responsive
 4. **Role-Based Access**: Different user roles (admin, analyst, demo) for flexible access control
 5. **Email Alert System**: Automated and manual email notifications for high-risk situations
+6. **Temporal Analysis & Forecasting**: ✅ Time-series forecasting to predict future sentiment trends (implemented via prediction module)
+7. **Historical Data Storage**: ✅ Long-term database persistence with PostgreSQL/SQLite for trend analysis
+8. **Production Infrastructure**: ✅ Structured logging, dependency injection, exception handling, and middleware
 
 ### Recommended Future Enhancements
 
 1. **Geographic Analysis**: Add location-based sentiment mapping to identify regional concerns
-2. **Temporal Analysis**: Implement time-series forecasting to predict future sentiment trends
-3. **Comparative Analysis**: Compare sentiment across different policy implementations or regions
-4. **Language Support**: Extend NLP capabilities to regional languages (Hindi, Tamil, Bengali, etc.)
-5. **Advanced Bot Detection**: 
+2. **Comparative Analysis**: Compare sentiment across different policy implementations or regions
+3. **Language Support**: Extend NLP capabilities to regional languages (Hindi, Tamil, Bengali, etc.)
+4. **Advanced Bot Detection**: 
    - Network graph analysis to identify bot clusters
    - Behavioral pattern recognition (posting frequency, time patterns)
    - Machine learning models trained on verified bot accounts
-6. **Interactive Visualizations**: Enhanced charts with drill-down capabilities for deeper insights
-7. **Alert System**: Automated notifications when critical risk thresholds are crossed
-8. **API Access**: Provide public APIs for researchers and developers
-9. **Historical Data**: Long-term storage and analysis of discourse trends
-10. **Collaboration Features**: Allow citizens to flag important issues for priority analysis
+5. **Interactive Visualizations**: Enhanced charts with drill-down capabilities for deeper insights
+6. **API Access**: Provide public APIs for researchers and developers
+7. **Collaboration Features**: Allow citizens to flag important issues for priority analysis
 
 ## Getting Started
 
@@ -424,14 +504,15 @@ This project was developed for a hackathon focusing on:
 
 ## Future Development
 
-This is currently a hackathon prototype. As we move towards production deployment, we plan to implement:
-- Comprehensive authentication and authorization systems
-- Proper database storage (currently using in-memory caching for the prototype)
-- Enhanced error handling and logging mechanisms
+This project has evolved from a hackathon prototype to a production-ready system. As we continue development, we plan to implement:
+- Comprehensive authentication and authorization systems (JWT-based with refresh tokens)
 - Rate limiting for API endpoints to ensure fair usage
 - CI/CD pipelines for automated testing and deployment
 - Comprehensive test coverage including unit, integration, and end-to-end tests
 - Full compliance with data protection regulations and privacy laws
+- Real-time WebSocket updates for live dashboard refreshes
+- Advanced caching strategies for improved performance
+- Database migration tools (Alembic) for schema versioning
 
 ## License
 
