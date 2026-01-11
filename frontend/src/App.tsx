@@ -7,12 +7,27 @@ import Analytics from './pages/Analytics'
 import Trends from './pages/Trends'
 import PolicyBrief from './pages/PolicyBrief'
 import EthicsScope from './pages/EthicsScope'
+import Alerts from './pages/Alerts'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth()
   
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
+  }
+  
+  return <>{children}</>
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isAdmin } = useAuth()
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+  
+  if (!isAdmin) {
+    return <Navigate to="/" replace />
   }
   
   return <>{children}</>
@@ -40,6 +55,7 @@ function App() {
         <Route path="trends" element={<Trends />} />
         <Route path="policy-brief" element={<PolicyBrief />} />
         <Route path="ethics" element={<EthicsScope />} />
+        <Route path="alerts" element={<AdminRoute><Alerts /></AdminRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

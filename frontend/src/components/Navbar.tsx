@@ -7,6 +7,7 @@ const navItems = [
   { path: '/trends', label: 'Trends', adminOnly: false },
   { path: '/policy-brief', label: 'Policy Brief', adminOnly: false },
   { path: '/ethics', label: 'Ethics & Scope', adminOnly: false },
+  { path: '/alerts', label: 'Alerts', adminOnly: true },
 ]
 
 export default function Navbar() {
