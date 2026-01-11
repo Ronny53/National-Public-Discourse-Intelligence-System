@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.config.settings import get_settings
-from backend.api.routes import dashboard
+from backend.api.routes import dashboard, alerts
 from backend.database.database import init_db
 
 settings = get_settings()
@@ -22,6 +22,7 @@ async def startup_event():
         print("This might be expected if migrations haven't been run yet.")
 
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
+app.include_router(alerts.router, prefix="/api/v1/alerts", tags=["alerts"])
 
 # CORS Configuration
 origins = [

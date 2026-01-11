@@ -1,5 +1,8 @@
 import os
+import json
+from pathlib import Path
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 from functools import lru_cache
 
 class Settings(BaseSettings):
@@ -24,8 +27,32 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./nis_dev.db"  # SQLite for development
     DATABASE_ECHO: bool = False  # Set to True for SQL query logging
     
+    # Email Alert Configuration
+    EMAIL_HOST: str = "smtp.gmail.com"
+    EMAIL_PORT: int = 587
+    EMAIL_USER: str = ""
+    EMAIL_APP_PASSWORD: str = ""
+    EMAIL_RECIPIENTS: list[str] = []
+    ALERT_THRESHOLD: float = 70.0
+    ALERT_COOLDOWN_MINUTES: int = 15  # Prevent duplicate alerts within this time
+    
+    @field_validator('EMAIL_RECIPIENTS', mode='before')
+    @classmethod
+    def parse_recipients(cls, v):
+        """Parse EMAIL_RECIPIENTS from JSON string or list."""
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                # Fallback: treat as comma-separated string
+                return [email.strip() for email in v.split(',') if email.strip()]
+        return v or []
+    
     class Config:
-        env_file = ".env"
+        # Try backend/.env first, then root .env
+        backend_env = Path(__file__).parent.parent / ".env"
+        root_env = Path(__file__).parent.parent.parent / ".env"
+        env_file = str(backend_env) if backend_env.exists() else (str(root_env) if root_env.exists() else ".env")
 
 @lru_cache()
 def get_settings():

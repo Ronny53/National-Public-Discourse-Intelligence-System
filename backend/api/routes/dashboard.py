@@ -146,6 +146,24 @@ async def refresh_pipeline(db: Session = None):
         }
         db_service.save_dashboard_summary(summary_data)
         
+        # 7.5. Auto-alert if risk score exceeds threshold
+        risk_score = risk_res.get('score', 0.0)
+        if risk_score > settings.ALERT_THRESHOLD:
+            try:
+                from backend.email.email_service import get_email_service
+                from backend.database.alert_history import alert_history
+                
+                # Check cooldown before sending
+                if alert_history.can_send_alert():
+                    email_service = get_email_service()
+                    if email_service.send_alert(risk_score, is_manual=False):
+                        alert_history.record_alert()
+                        print(f"Auto-alert sent: Risk score {risk_score:.1f} exceeds threshold {settings.ALERT_THRESHOLD}")
+                else:
+                    print(f"Auto-alert skipped: Cooldown active (Risk score: {risk_score:.1f})")
+            except Exception as e:
+                print(f"Error sending auto-alert: {e}")
+        
         # 8. Save Trends to Database
         keywords = [c['top_keywords'][0] for c in clusters[:3]] if clusters else ["India", "Policy", "Economy"]
         trends_data = trends_client.get_interest_over_time(keywords)

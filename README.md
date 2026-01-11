@@ -56,7 +56,13 @@ To ensure data authenticity, NIS employs multiple verification mechanisms:
 - Maps issues to responsible government ministries
 - Provides actionable insights for decision-makers
 
-### 6. Privacy & Ethics
+### 6. Email Alert System
+- **Automatic Alerts**: Sends email notifications when risk score exceeds threshold (default: 70)
+- **Manual Alerts**: Admin users can manually trigger alerts from the dashboard
+- **Cooldown Protection**: Prevents alert spam with configurable cooldown periods
+- **Admin-Only Access**: Alert management is restricted to admin users only
+
+### 7. Privacy & Ethics
 - Redacts personally identifiable information (PII) including emails and phone numbers
 - Implements ethical filtering to exclude inappropriate content
 - Maintains user privacy while preserving analytical value
@@ -137,6 +143,34 @@ frontend/
 4. **Social Cohesion**: Understanding public sentiment helps bridge gaps between citizens and government
 5. **Innovation**: Creates a new model for public-private collaboration in governance
 
+## Email Alert System
+
+The Email Alert System provides automatic and manual email notifications for high-risk situations.
+
+### Features
+- **Automatic Alerts**: Triggers when escalation risk score exceeds the configured threshold (default: 70)
+- **Manual Alerts**: Admin users can send alerts manually from the Alerts tab
+- **Cooldown Protection**: Prevents alert spam with a configurable cooldown period (default: 15 minutes)
+- **Test Email**: Verify email configuration with a test email function
+- **Admin-Only Access**: The Alerts tab is only visible to users with admin role
+
+### Configuration
+Email alerts are configured via environment variables in `backend/.env`:
+- `EMAIL_HOST`: SMTP server (default: smtp.gmail.com)
+- `EMAIL_PORT`: SMTP port (default: 587)
+- `EMAIL_USER`: Sender email address
+- `EMAIL_APP_PASSWORD`: Gmail App Password (not regular password)
+- `EMAIL_RECIPIENTS`: JSON array of recipient email addresses
+- `ALERT_THRESHOLD`: Risk score threshold for auto-alerts (default: 70)
+- `ALERT_COOLDOWN_MINUTES`: Minimum time between alerts (default: 15)
+
+### Accessing the Alerts Tab
+1. Log in with an admin account (`admin@nis.gov.in` / `admin123`)
+2. Navigate to the "Alerts" tab in the navigation bar
+3. View current risk status, send manual alerts, or test email configuration
+
+**Note**: This system is for academic and demonstration purposes only. Recipients are treated as sub-branch/demo contacts, not official authorities.
+
 ## Enhanced Features & Future Improvements
 
 Beyond the core functionality, the system includes several advanced features and potential enhancements:
@@ -146,6 +180,7 @@ Beyond the core functionality, the system includes several advanced features and
 2. **Synthetic Data Fallback**: Gracefully handles API limitations during development/demo phases
 3. **Real-Time Updates**: Background task processing ensures dashboard remains responsive
 4. **Role-Based Access**: Different user roles (admin, analyst, demo) for flexible access control
+5. **Email Alert System**: Automated and manual email notifications for high-risk situations
 
 ### Recommended Future Enhancements
 
@@ -194,15 +229,30 @@ cd National-Public-Discourse-Intelligence-System
    ```
    *(On some systems, you may need to use `pip3` instead of `pip`)*
 
-3. (Optional) Set up Reddit API credentials:
-   - While still in the `backend` directory, create a `.env` file
-   - Add the following lines (replace with your actual credentials):
+3. Configure environment variables:
+   - While still in the `backend` directory, create a `.env` file (or copy `env.example` to `.env`)
+   - Add the following configuration:
      ```
+     # Email Alert Configuration (Required for email alerts)
+     EMAIL_HOST=smtp.gmail.com
+     EMAIL_PORT=587
+     EMAIL_USER=your_email@gmail.com
+     EMAIL_APP_PASSWORD=your_app_password
+     EMAIL_RECIPIENTS=["recipient1@email.com","recipient2@email.com"]
+     ALERT_THRESHOLD=70
+     ALERT_COOLDOWN_MINUTES=15
+     
+     # Reddit API Credentials (Optional)
      REDDIT_CLIENT_ID=your_client_id
      REDDIT_CLIENT_SECRET=your_client_secret
      REDDIT_USER_AGENT=your_user_agent
      ```
-   - If you skip this step, the system will automatically use synthetic data for demonstration
+   - **Email Setup**: For Gmail, you'll need to generate an App Password:
+     1. Go to your Google Account settings
+     2. Enable 2-Step Verification
+     3. Generate an App Password for "Mail"
+     4. Use this App Password (not your regular password) in `EMAIL_APP_PASSWORD`
+   - If you skip Reddit credentials, the system will automatically use synthetic data for demonstration
 
 4. **Important**: Go back to the root directory (where both `backend` and `frontend` folders are located):
    ```bash
@@ -248,7 +298,7 @@ cd National-Public-Discourse-Intelligence-System
 ### Default Login Credentials
 
 For demo purposes, you can use any of the following accounts:
-- **Admin Account**: 
+- **Admin Account** (Full access including Email Alerts): 
   - Email: `admin@nis.gov.in`
   - Password: `admin123`
 - **Analyst Account**: 
@@ -257,6 +307,20 @@ For demo purposes, you can use any of the following accounts:
 - **Demo Account**: 
   - Email: `demo@nis.gov.in`
   - Password: `demo123`
+
+### Quick Start Scripts (Windows)
+
+For Windows users, you can use the provided batch scripts:
+
+1. **Setup**: Run `setup.bat` to install all dependencies
+2. **Run**: Run `run.bat` to start both backend and frontend servers
+
+These scripts will:
+- Set up Python virtual environment
+- Install backend dependencies
+- Install frontend dependencies
+- Create `.env` file from template
+- Start both servers in separate windows
 
 ### Troubleshooting
 
@@ -272,21 +336,33 @@ For demo purposes, you can use any of the following accounts:
 National-Public-Discourse-Intelligence-System/
 ├── backend/              # Python FastAPI backend
 │   ├── api/             # API routes and schemas
+│   │   └── routes/
+│   │       ├── dashboard.py  # Dashboard endpoints
+│   │       └── alerts.py     # Email alert endpoints
 │   ├── clustering/      # Topic clustering
 │   ├── config/          # Configuration settings
+│   ├── database/        # Database models and services
+│   │   └── alert_history.py  # Alert cooldown tracking
+│   ├── email/           # Email alert service
+│   │   └── email_service.py  # SMTP email functionality
 │   ├── indices/         # Risk calculations
 │   ├── ingestion/       # Data collection
 │   ├── integrity/       # Bot detection
 │   ├── nlp/             # NLP analysis
-│   ├── policy/          # Policy brief generation
-│   └── preprocessing/   # Data cleaning
+│   ├── policy/           # Policy brief generation
+│   ├── preprocessing/   # Data cleaning
+│   ├── env.example      # Environment variables template
+│   └── requirements.txt # Python dependencies
 ├── frontend/            # React TypeScript frontend
 │   ├── src/
 │   │   ├── components/  # UI components
 │   │   ├── pages/       # Page components
+│   │   │   └── Alerts.tsx  # Email alerts page (admin only)
 │   │   ├── services/    # API services
 │   │   └── types/       # TypeScript types
 │   └── public/          # Static assets
+├── setup.bat            # Windows setup script
+├── run.bat              # Windows run script
 └── README.md           # This file
 ```
 
@@ -320,3 +396,6 @@ For questions or inquiries about this project, please refer to the hackathon sub
 
 **Note**: This system is currently running on synthetic/dummy data due to API access limitations. In production, it would integrate with official social media APIs to process real-time public discourse data.
 
+## Disclaimer
+
+**This system is for academic and demonstration purposes only.** The Email Alert System and all features are designed for educational use in a hackathon context. Recipients of email alerts are treated as sub-branch/demo contacts, not official authorities.
